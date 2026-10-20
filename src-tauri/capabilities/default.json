@@ -1,0 +1,32 @@
+{
+  "identifier": "default",
+  "description": "Goal Tracker desktop permissions",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*", "http://localhost:*"]
+  },
+  "permissions": [
+    "core:default",
+    "notification:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "args": true,
+          "name": "binaries/goaltracker-api",
+          "sidecar": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "args": true,
+          "name": "binaries/goaltracker-api",
+          "sidecar": true
+        }
+      ]
+    }
+  ]
+}

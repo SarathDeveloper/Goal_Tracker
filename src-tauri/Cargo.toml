@@ -1,0 +1,17 @@
+[package]
+name = "goaltracker"
+version = "1.0.0"
+description = "Goal Tracker desktop app"
+authors = ["Goal Tracker"]
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dirs = "6"
+tauri = { version = "2", features = [] }
+tauri-plugin-notification = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-single-instance = "2"
