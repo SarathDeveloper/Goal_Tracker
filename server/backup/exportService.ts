@@ -14,6 +14,7 @@ export function exportJson(): Record<string, unknown> {
     progressEntries: db.prepare('SELECT * FROM progress_entries ORDER BY id').all(),
     habits: db.prepare('SELECT * FROM habits ORDER BY id').all(),
     habitCheckins: db.prepare('SELECT * FROM habit_checkins ORDER BY id').all(),
+    diaryEntries: db.prepare('SELECT * FROM diary_entries ORDER BY id').all(),
     reminderSettings: db.prepare('SELECT * FROM reminder_settings').all(),
   }
 }
@@ -32,6 +33,7 @@ export function exportCsv(kind: 'goals' | 'progress' | 'habits'): string {
       .prepare(
         `SELECT g.id, g.title, g.description, c.name AS category, g.priority, g.status,
                 g.start_date, g.target_date, g.metric_type, g.start_value, g.target_value, g.unit,
+                g.start_label, g.target_label, g.remind,
                 g.completed_at, g.archived_at
          FROM goals g LEFT JOIN categories c ON c.id = g.category_id ORDER BY g.id`,
       )
@@ -50,6 +52,9 @@ export function exportCsv(kind: 'goals' | 'progress' | 'habits'): string {
         'start_value',
         'target_value',
         'unit',
+        'start_label',
+        'target_label',
+        'remind',
         'completed_at',
         'archived_at',
       ],
@@ -66,6 +71,9 @@ export function exportCsv(kind: 'goals' | 'progress' | 'habits'): string {
         cell(row.start_value),
         cell(row.target_value),
         cell(row.unit),
+        cell(row.start_label),
+        cell(row.target_label),
+        cell(row.remind),
         cell(row.completed_at),
         cell(row.archived_at),
       ]),
@@ -85,7 +93,7 @@ export function exportCsv(kind: 'goals' | 'progress' | 'habits'): string {
   }
   const habits = db
     .prepare(
-      `SELECT h.id, h.title, h.frequency, h.target_per_period, g.title AS goal, h.archived_at
+      `SELECT h.id, h.title, h.frequency, h.target_per_period, g.title AS goal, h.remind, h.archived_at
        FROM habits h LEFT JOIN goals g ON g.id = h.goal_id ORDER BY h.id`,
     )
     .all() as Array<Record<string, unknown>>
@@ -99,13 +107,14 @@ export function exportCsv(kind: 'goals' | 'progress' | 'habits'): string {
     byHabit.set(checkin.habit_id, list)
   }
   return toCsv(
-    ['id', 'title', 'frequency', 'target_per_period', 'goal', 'archived_at', 'checkins'],
+    ['id', 'title', 'frequency', 'target_per_period', 'goal', 'remind', 'archived_at', 'checkins'],
     habits.map((row) => [
       cell(row.id),
       cell(row.title),
       cell(row.frequency),
       cell(row.target_per_period),
       cell(row.goal),
+      cell(row.remind),
       cell(row.archived_at),
       (byHabit.get(Number(row.id)) ?? []).join('|'),
     ]),

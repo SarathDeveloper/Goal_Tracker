@@ -43,7 +43,7 @@ describe('backup and export', () => {
     const json = await request(testApp()).get('/api/backup/export.json')
     expect(json.status).toBe(200)
     expect(JSON.stringify(json.body)).toContain('Export me')
-    expect(json.body.schemaVersion).toBe(8)
+    expect(json.body.schemaVersion).toBe(11)
     const csv = await request(testApp()).get('/api/backup/export.csv').query({ kind: 'goals' })
     expect(csv.status).toBe(200)
     expect(csv.headers['content-type']).toMatch(/text\/csv/)

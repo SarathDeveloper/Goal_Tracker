@@ -24,9 +24,8 @@ export async function createGoal(page: Page, title: string, options?: { targetDa
   }
   if (options?.measurable) {
     await page.locator('#goal-metric').selectOption('numeric')
-    await page.locator('#goal-start-value').fill('0')
-    await page.locator('#goal-target-value').fill('100')
-    await page.locator('#goal-unit').fill('km')
+    await page.locator('#goal-start-value').fill('0 km')
+    await page.locator('#goal-target-value').fill('100 km')
   }
   await page.getByRole('button', { name: 'Save goal' }).click()
   await page.getByRole('link', { name: new RegExp(title) }).waitFor()

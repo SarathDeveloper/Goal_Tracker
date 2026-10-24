@@ -47,13 +47,13 @@ export function dueReminders(): DueReminder[] {
   const goals = db
     .prepare(
       `SELECT id, title, target_date FROM goals
-       WHERE archived_at IS NULL AND status != 'completed' AND target_date IS NOT NULL AND target_date <= ?
+       WHERE archived_at IS NULL AND status != 'completed' AND remind = 1 AND target_date IS NOT NULL AND target_date <= ?
        ORDER BY target_date, id`,
     )
     .all(horizon) as Array<{ id: number; title: string; target_date: string }>
   const habits = db
     .prepare(
-      `SELECT id, title, frequency, target_per_period FROM habits WHERE archived_at IS NULL ORDER BY title COLLATE NOCASE, id`,
+      `SELECT id, title, frequency, target_per_period FROM habits WHERE archived_at IS NULL AND remind = 1 ORDER BY title COLLATE NOCASE, id`,
     )
     .all() as Array<{ id: number; title: string; frequency: 'daily' | 'weekly'; target_per_period: number }>
   const checkins = db

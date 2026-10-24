@@ -13,6 +13,9 @@ const FILES: { version: number; file: string }[] = [
   { version: 3, file: '003_progress.sql' },
   { version: 5, file: '005_habits.sql' },
   { version: 8, file: '008_reminders.sql' },
+  { version: 9, file: '009_goal_labels.sql' },
+  { version: 10, file: '010_remind.sql' },
+  { version: 11, file: '011_diary.sql' },
 ]
 
 export function getMigrations(): Migration[] {

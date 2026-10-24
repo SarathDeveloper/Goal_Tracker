@@ -1,3 +1,4 @@
+import { parseMeasurement, sameUnit } from '@shared/measurement'
 import { fieldErrors, goalInputSchema } from '@shared/schemas'
 import type { Category, Goal, GoalStatus, MetricType, Priority } from '@shared/types'
 import { useState, type FormEvent } from 'react'
@@ -24,9 +25,9 @@ interface FormState {
   startDate: string
   targetDate: string
   metricType: MetricType
-  startValue: string
-  targetValue: string
-  unit: string
+  startText: string
+  targetText: string
+  remind: boolean
 }
 
 function emptyForm(): FormState {
@@ -39,10 +40,28 @@ function emptyForm(): FormState {
     startDate: '',
     targetDate: '',
     metricType: 'milestones',
-    startValue: '',
-    targetValue: '',
-    unit: '',
+    startText: '',
+    targetText: '',
+    remind: true,
   }
+}
+
+function measurementText(value: number | null, unit: string, label: string): string {
+  if (label.trim()) {
+    return label
+  }
+  if (value === null) {
+    return ''
+  }
+  return unit ? `${value} ${unit}` : String(value)
+}
+
+function trackingHint(raw: string): string | null {
+  const parsed = parseMeasurement(raw)
+  if (parsed.value === null) {
+    return null
+  }
+  return parsed.unit ? `Tracking: ${parsed.value} ${parsed.unit}` : `Tracking: ${parsed.value}`
 }
 
 function fromGoal(goal: Goal): FormState {
@@ -55,19 +74,10 @@ function fromGoal(goal: Goal): FormState {
     startDate: goal.startDate ?? '',
     targetDate: goal.targetDate ?? '',
     metricType: goal.metricType,
-    startValue: goal.startValue === null ? '' : String(goal.startValue),
-    targetValue: goal.targetValue === null ? '' : String(goal.targetValue),
-    unit: goal.unit,
+    startText: measurementText(goal.startValue, goal.unit, goal.startLabel),
+    targetText: measurementText(goal.targetValue, goal.unit, goal.targetLabel),
+    remind: goal.remind,
   }
-}
-
-function parseNumber(raw: string): number | null {
-  const trimmed = raw.trim()
-  if (!trimmed) {
-    return null
-  }
-  const value = Number(trimmed)
-  return Number.isFinite(value) ? value : Number.NaN
 }
 
 export function GoalFormModal(props: GoalFormModalProps) {
@@ -90,13 +100,23 @@ function GoalForm({ goal, categories, onClose, onSaved }: GoalFormModalProps) {
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     const numeric = form.metricType === 'numeric'
-    if (numeric && form.startValue.trim() && !Number.isFinite(Number(form.startValue))) {
-      setErrors({ startValue: 'Enter a number' })
-      return
-    }
-    if (numeric && form.targetValue.trim() && !Number.isFinite(Number(form.targetValue))) {
-      setErrors({ targetValue: 'Enter a number' })
-      return
+    const start = numeric ? parseMeasurement(form.startText) : { value: null, unit: '' }
+    const target = numeric ? parseMeasurement(form.targetText) : { value: null, unit: '' }
+    if (numeric) {
+      const invalid: Record<string, string> = {}
+      if (start.value === null) {
+        invalid.startText = 'Include a number, like 64 kg'
+      }
+      if (target.value === null) {
+        invalid.targetText = 'Include a number, like 64 kg'
+      }
+      if (start.unit && target.unit && !sameUnit(start.unit, target.unit)) {
+        invalid.targetText = 'Use the same unit for start and target'
+      }
+      if (Object.keys(invalid).length > 0) {
+        setErrors(invalid)
+        return
+      }
     }
     const draft = {
       title: form.title,
@@ -107,13 +127,26 @@ function GoalForm({ goal, categories, onClose, onSaved }: GoalFormModalProps) {
       startDate: form.startDate,
       targetDate: form.targetDate,
       metricType: form.metricType,
-      startValue: numeric ? parseNumber(form.startValue) : null,
-      targetValue: numeric ? parseNumber(form.targetValue) : null,
-      unit: numeric ? form.unit : '',
+      startValue: start.value,
+      targetValue: target.value,
+      unit: target.unit || start.unit,
+      startLabel: numeric ? form.startText : '',
+      targetLabel: numeric ? form.targetText : '',
+      remind: form.remind,
     }
     const parsed = goalInputSchema.safeParse(draft)
     if (!parsed.success) {
-      setErrors(fieldErrors(parsed.error))
+      const fields = fieldErrors(parsed.error)
+      const next = { ...fields }
+      const startMessage = fields.startLabel ?? fields.startValue
+      const targetMessage = fields.targetLabel ?? fields.targetValue ?? fields.unit
+      if (startMessage) {
+        next.startText = startMessage
+      }
+      if (targetMessage) {
+        next.targetText = targetMessage
+      }
+      setErrors(next)
       return
     }
     setSaving(true)
@@ -188,17 +221,38 @@ function GoalForm({ goal, categories, onClose, onSaved }: GoalFormModalProps) {
         </div>
         {form.metricType === 'numeric' ? (
           <div className="two">
-            <FormField label="Starting value" htmlFor="goal-start-value" error={errors.startValue}>
-              <input id="goal-start-value" inputMode="decimal" value={form.startValue} onChange={(event) => set('startValue', event.target.value)} />
+            <FormField label="Starting point" htmlFor="goal-start-value" error={errors.startText}>
+              <input
+                id="goal-start-value"
+                value={form.startText}
+                placeholder="starting from 64 kg"
+                onChange={(event) => set('startText', event.target.value)}
+              />
+              {trackingHint(form.startText) ? <span className="muted">{trackingHint(form.startText)}</span> : null}
             </FormField>
-            <FormField label="Target value" htmlFor="goal-target-value" error={errors.targetValue}>
-              <input id="goal-target-value" inputMode="decimal" value={form.targetValue} onChange={(event) => set('targetValue', event.target.value)} />
-            </FormField>
-            <FormField label="Unit" htmlFor="goal-unit" error={errors.unit}>
-              <input id="goal-unit" value={form.unit} onChange={(event) => set('unit', event.target.value)} placeholder="km, pages, hours" />
+            <FormField label="Target" htmlFor="goal-target-value" error={errors.targetText}>
+              <input
+                id="goal-target-value"
+                value={form.targetText}
+                placeholder="75 kg"
+                onChange={(event) => set('targetText', event.target.value)}
+              />
+              {trackingHint(form.targetText) ? <span className="muted">{trackingHint(form.targetText)}</span> : null}
             </FormField>
           </div>
         ) : null}
+        <div>
+          <label className="check">
+            <input
+              id="goal-remind"
+              type="checkbox"
+              checked={form.remind}
+              onChange={(event) => set('remind', event.target.checked)}
+            />
+            Remind me
+          </label>
+          <p className="muted">Uses the daily check time in Settings.</p>
+        </div>
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             Cancel

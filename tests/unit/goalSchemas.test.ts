@@ -53,6 +53,29 @@ describe('goalInputSchema', () => {
       true,
     )
   })
+
+  it('trims start and target labels and rejects ones over 200 characters', () => {
+    const parsed = goalInputSchema.parse({
+      ...base,
+      metricType: 'numeric',
+      startValue: 64,
+      targetValue: 75,
+      unit: 'kg',
+      startLabel: '  starting from fatty and 64 kg  ',
+      targetLabel: '75kg weight and muscular body',
+    })
+    expect(parsed.startLabel).toBe('starting from fatty and 64 kg')
+    expect(parsed.targetLabel).toBe('75kg weight and muscular body')
+    expect(
+      goalInputSchema.safeParse({
+        ...base,
+        metricType: 'numeric',
+        startValue: 1,
+        targetValue: 2,
+        startLabel: 'a'.repeat(201),
+      }).success,
+    ).toBe(false)
+  })
 })
 
 describe('category and habit schemas', () => {

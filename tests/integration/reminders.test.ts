@@ -40,4 +40,15 @@ describe('reminders', () => {
     const invalid = await request(testApp()).put('/api/reminders/settings').send({ enabled: true, daysBefore: 90, checkTime: '9am' })
     expect(invalid.status).toBe(400)
   })
+
+  it('skips goals and habits that turned reminders off', async () => {
+    process.env.GOALTRACKER_TODAY = '2026-10-20'
+    process.env.GOALTRACKER_NOW_MINUTES = '600'
+    await createGoal({ title: 'Quiet', targetDate: '2026-10-20', remind: false })
+    await createGoal({ title: 'Loud', targetDate: '2026-10-20' })
+    await request(testApp()).post('/api/habits').send({ title: 'Silent stretch', frequency: 'daily', remind: false })
+    await request(testApp()).post('/api/habits').send({ title: 'Loud stretch', frequency: 'daily' })
+    const due = await request(testApp()).get('/api/reminders/due')
+    expect(due.body.reminders.map((item: { title: string }) => item.title)).toEqual(['Loud', 'Loud stretch'])
+  })
 })

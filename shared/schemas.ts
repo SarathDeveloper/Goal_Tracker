@@ -32,6 +32,9 @@ export const goalInputSchema = z
     startValue: nullableNumber.optional().default(null),
     targetValue: nullableNumber.optional().default(null),
     unit: z.string().trim().max(40, 'Unit must be 40 characters or less').optional().default(''),
+    startLabel: z.string().trim().max(200, 'Starting point must be 200 characters or less').optional().default(''),
+    targetLabel: z.string().trim().max(200, 'Target must be 200 characters or less').optional().default(''),
+    remind: z.boolean().optional().default(true),
   })
   .superRefine((value, ctx) => {
     if (value.startDate && value.targetDate && value.targetDate < value.startDate) {
@@ -89,6 +92,7 @@ export const habitInputSchema = z
     frequency: z.enum(['daily', 'weekly']),
     targetPerPeriod: z.number().int().min(1).max(7).optional().default(1),
     goalId: z.number().int().positive().nullable().optional().default(null),
+    remind: z.boolean().optional().default(true),
   })
   .superRefine((value, ctx) => {
     if (value.frequency === 'daily' && value.targetPerPeriod !== 1) {
@@ -102,6 +106,13 @@ export const habitInputSchema = z
 
 export const checkinInputSchema = z.object({
   date: z.string().trim().refine(isIsoDate, 'Enter a real date (YYYY-MM-DD)'),
+})
+
+export const diaryEntryInputSchema = z.object({
+  entryDate: z.string().trim().refine(isIsoDate, 'Enter a real date (YYYY-MM-DD)'),
+  title: z.string().trim().min(1, 'Title is required').max(120, 'Title must be 120 characters or less'),
+  body: z.string().trim().max(10000, 'Entry must be 10000 characters or less').optional().default(''),
+  mood: z.number().int().min(1).max(5).nullable().optional().default(null),
 })
 
 export const reminderSettingsSchema = z.object({
@@ -123,6 +134,7 @@ export type CategoryInput = z.output<typeof categoryInputSchema>
 export type MilestoneInput = z.output<typeof milestoneInputSchema>
 export type ProgressInput = z.output<typeof progressInputSchema>
 export type HabitInput = z.output<typeof habitInputSchema>
+export type DiaryEntryInput = z.output<typeof diaryEntryInputSchema>
 export type ReminderSettingsInput = z.output<typeof reminderSettingsSchema>
 
 export function fieldErrors(error: z.ZodError): Record<string, string> {

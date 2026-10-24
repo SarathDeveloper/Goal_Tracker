@@ -34,6 +34,9 @@ interface GoalRow {
   start_value: number | null
   target_value: number | null
   unit: string
+  start_label: string
+  target_label: string
+  remind: number
   milestone_total: number
   milestone_done: number
   latest_value: number | null
@@ -44,6 +47,7 @@ const GOAL_SELECT = `
     g.id, g.title, g.description, g.category_id, g.priority, g.status,
     g.start_date, g.target_date, g.completed_at, g.archived_at,
     g.created_at, g.updated_at, g.metric_type, g.start_value, g.target_value, g.unit,
+    g.start_label, g.target_label, g.remind,
     c.name AS category_name, c.color AS category_color,
     (SELECT COUNT(*) FROM milestones m WHERE m.goal_id = g.id) AS milestone_total,
     (SELECT COUNT(*) FROM milestones m WHERE m.goal_id = g.id AND m.completed_at IS NOT NULL) AS milestone_done,
@@ -93,6 +97,9 @@ function mapGoal(row: GoalRow): Goal {
     startValue: row.start_value,
     targetValue: row.target_value,
     unit: row.unit,
+    startLabel: row.start_label,
+    targetLabel: row.target_label,
+    remind: row.remind === 1,
     progressPercent,
     milestoneCount: row.milestone_total,
     milestoneDone: row.milestone_done,
@@ -220,8 +227,9 @@ export function createGoal(input: GoalInput): Goal {
     .prepare(
       `INSERT INTO goals (
         title, description, category_id, priority, status, start_date, target_date,
-        completed_at, archived_at, created_at, updated_at, metric_type, start_value, target_value, unit
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
+        completed_at, archived_at, created_at, updated_at, metric_type, start_value, target_value, unit,
+        start_label, target_label, remind
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.title,
@@ -235,9 +243,12 @@ export function createGoal(input: GoalInput): Goal {
       timestamp,
       timestamp,
       input.metricType,
-      input.metricType === 'numeric' ? input.startValue : input.startValue,
-      input.metricType === 'numeric' ? input.targetValue : input.targetValue,
+      input.startValue,
+      input.targetValue,
       input.unit,
+      input.startLabel,
+      input.targetLabel,
+      input.remind ? 1 : 0,
     )
   return getGoal(Number(result.lastInsertRowid))
 }
@@ -251,7 +262,7 @@ export function updateGoal(id: number, input: GoalInput): Goal {
       `UPDATE goals SET
         title = ?, description = ?, category_id = ?, priority = ?, status = ?,
         start_date = ?, target_date = ?, completed_at = ?, metric_type = ?,
-        start_value = ?, target_value = ?, unit = ?, updated_at = ?
+        start_value = ?, target_value = ?, unit = ?, start_label = ?, target_label = ?, remind = ?, updated_at = ?
       WHERE id = ?`,
     )
     .run(
@@ -267,6 +278,9 @@ export function updateGoal(id: number, input: GoalInput): Goal {
       input.startValue,
       input.targetValue,
       input.unit,
+      input.startLabel,
+      input.targetLabel,
+      input.remind ? 1 : 0,
       nowIso(),
       id,
     )

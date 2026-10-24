@@ -5,7 +5,7 @@ test('checks a habit for today and keeps it after reload', async ({ page, reques
   await silenceReminders(request)
   const title = `Water plants ${Date.now()}`
   await page.goto('/habits')
-  await page.getByRole('button', { name: 'New habit' }).click()
+  await page.getByRole('button', { name: 'Add habit' }).click()
   await page.getByLabel('Title').fill(title)
   await page.getByLabel('Frequency').selectOption('weekly')
   await page.getByLabel('Days per week').fill('3')

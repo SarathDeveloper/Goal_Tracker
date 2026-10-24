@@ -31,6 +31,9 @@ export interface Goal {
   startValue: number | null
   targetValue: number | null
   unit: string
+  startLabel: string
+  targetLabel: string
+  remind: boolean
   progressPercent: number
   milestoneCount: number
   milestoneDone: number
@@ -68,6 +71,18 @@ export interface GoalList {
   total: number
 }
 
+export type DiaryMood = 1 | 2 | 3 | 4 | 5
+
+export interface DiaryEntry {
+  id: number
+  entryDate: string
+  title: string
+  body: string
+  mood: DiaryMood | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Habit {
   id: number
   title: string
@@ -75,6 +90,7 @@ export interface Habit {
   targetPerPeriod: number
   goalId: number | null
   goalTitle: string | null
+  remind: boolean
   archivedAt: string | null
   createdAt: string
   updatedAt: string

@@ -9,6 +9,7 @@ import { getAppRoot } from './lib/appPaths'
 import backupRoutes from './routes/backup.routes'
 import categoriesRoutes from './routes/categories.routes'
 import dashboardRoutes from './routes/dashboard.routes'
+import diaryRoutes from './routes/diary.routes'
 import goalsRoutes from './routes/goals.routes'
 import habitsRoutes from './routes/habits.routes'
 import milestonesRoutes from './routes/milestones.routes'
@@ -28,6 +29,7 @@ export function createApp(): express.Express {
   app.use('/api/milestones', milestonesRoutes)
   app.use('/api/progress', progressRoutes)
   app.use('/api/dashboard', dashboardRoutes)
+  app.use('/api/diary', diaryRoutes)
   app.use('/api/habits', habitsRoutes)
   app.use('/api/backup', backupRoutes)
   app.use('/api/reminders', remindersRoutes)

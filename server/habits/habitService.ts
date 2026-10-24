@@ -13,6 +13,7 @@ interface HabitRow {
   target_per_period: number
   goal_id: number | null
   goal_title: string | null
+  remind: number
   archived_at: string | null
   created_at: string
   updated_at: string
@@ -41,6 +42,7 @@ function mapHabit(row: HabitRow, dates: string[]): Habit {
     targetPerPeriod: row.target_per_period,
     goalId: row.goal_id,
     goalTitle: row.goal_title,
+    remind: row.remind === 1,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -53,7 +55,7 @@ function mapHabit(row: HabitRow, dates: string[]): Habit {
 }
 
 const SELECT = `
-  SELECT h.id, h.title, h.frequency, h.target_per_period, h.goal_id, h.archived_at, h.created_at, h.updated_at,
+  SELECT h.id, h.title, h.frequency, h.target_per_period, h.goal_id, h.remind, h.archived_at, h.created_at, h.updated_at,
     g.title AS goal_title
   FROM habits h
   LEFT JOIN goals g ON g.id = h.goal_id
@@ -110,10 +112,10 @@ export function createHabit(input: HabitInput): Habit {
   const timestamp = nowIso()
   const result = getDatabase()
     .prepare(
-      `INSERT INTO habits (title, frequency, target_per_period, goal_id, archived_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, NULL, ?, ?)`,
+      `INSERT INTO habits (title, frequency, target_per_period, goal_id, remind, archived_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
     )
-    .run(input.title, input.frequency, input.targetPerPeriod, input.goalId, timestamp, timestamp)
+    .run(input.title, input.frequency, input.targetPerPeriod, input.goalId, input.remind ? 1 : 0, timestamp, timestamp)
   return loadHabit(Number(result.lastInsertRowid))
 }
 
@@ -122,9 +124,9 @@ export function updateHabit(id: number, input: HabitInput): Habit {
   requireGoal(input.goalId)
   getDatabase()
     .prepare(
-      `UPDATE habits SET title = ?, frequency = ?, target_per_period = ?, goal_id = ?, updated_at = ? WHERE id = ?`,
+      `UPDATE habits SET title = ?, frequency = ?, target_per_period = ?, goal_id = ?, remind = ?, updated_at = ? WHERE id = ?`,
     )
-    .run(input.title, input.frequency, input.targetPerPeriod, input.goalId, nowIso(), id)
+    .run(input.title, input.frequency, input.targetPerPeriod, input.goalId, input.remind ? 1 : 0, nowIso(), id)
   return loadHabit(id)
 }
 

@@ -1,3 +1,4 @@
+import { parseMeasurement } from '@shared/measurement'
 import type { Category, Goal, GoalDetail, GoalStatus, ProgressEntry } from '@shared/types'
 import { fieldErrors, milestoneInputSchema, progressInputSchema } from '@shared/schemas'
 import { todayIso } from '@shared/dates'
@@ -29,6 +30,10 @@ export function GoalDetailPage() {
   const [entryValue, setEntryValue] = useState('')
   const [entryNote, setEntryNote] = useState('')
   const [entryError, setEntryError] = useState('')
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null)
+  const [editDate, setEditDate] = useState('')
+  const [editValue, setEditValue] = useState('')
+  const [editNote, setEditNote] = useState('')
 
   function load() {
     api<GoalDetail>(`/api/goals/${params.id}`)
@@ -65,6 +70,9 @@ export function GoalDetailPage() {
           startValue: goal.startValue,
           targetValue: goal.targetValue,
           unit: goal.unit,
+          startLabel: goal.startLabel,
+          targetLabel: goal.targetLabel,
+          remind: goal.remind,
         }),
       })
       load()
@@ -132,12 +140,12 @@ export function GoalDetailPage() {
   async function addEntry(event: FormEvent) {
     event.preventDefault()
     if (!goal) return
-    const value = Number(entryValue)
-    if (!Number.isFinite(value)) {
+    const measurement = parseMeasurement(entryValue)
+    if (measurement.value === null) {
       setEntryError('Enter a number')
       return
     }
-    const parsed = progressInputSchema.safeParse({ entryDate, value, note: entryNote })
+    const parsed = progressInputSchema.safeParse({ entryDate, value: measurement.value, note: entryNote })
     if (!parsed.success) {
       setEntryError(Object.values(fieldErrors(parsed.error))[0] ?? 'Check the entry')
       return
@@ -159,6 +167,33 @@ export function GoalDetailPage() {
       load()
     } catch (caught) {
       push({ tone: 'error', message: caught instanceof Error ? caught.message : 'Could not delete the entry' })
+    }
+  }
+
+  function beginEdit(entry: ProgressEntry) {
+    setEditingEntryId(entry.id)
+    setEditDate(entry.entryDate)
+    setEditValue(String(entry.value))
+    setEditNote(entry.note)
+  }
+
+  async function saveEdit(entry: ProgressEntry) {
+    const measurement = parseMeasurement(editValue)
+    if (measurement.value === null) {
+      push({ tone: 'error', message: 'Enter a number' })
+      return
+    }
+    const parsed = progressInputSchema.safeParse({ entryDate: editDate, value: measurement.value, note: editNote })
+    if (!parsed.success) {
+      push({ tone: 'error', message: parsed.error.issues[0]?.message ?? 'Check the entry' })
+      return
+    }
+    try {
+      await api(`/api/progress/${entry.id}`, { method: 'PUT', body: JSON.stringify(parsed.data) })
+      setEditingEntryId(null)
+      load()
+    } catch (caught) {
+      push({ tone: 'error', message: caught instanceof Error ? caught.message : 'Could not update the entry' })
     }
   }
 
@@ -207,6 +242,8 @@ export function GoalDetailPage() {
             {formatNumber(goal.startValue ?? 0)} to {formatNumber(goal.targetValue ?? 0)} {goal.unit}
           </span>
         ) : null}
+        {goal.startLabel ? <span>From: {goal.startLabel}</span> : null}
+        {goal.targetLabel ? <span>To: {goal.targetLabel}</span> : null}
       </div>
       <div className="actions" style={{ margin: '14px 0' }}>
         {(Object.keys(STATUS_LABELS) as GoalStatus[]).map((status) => (
@@ -221,10 +258,10 @@ export function GoalDetailPage() {
         ))}
       </div>
       {showProgress ? (
-        <p>
-          {goal.progressPercent}% complete
+        <div>
+          <p>{goal.progressPercent}% complete</p>
           <ProgressBar value={goal.progressPercent} />
-        </p>
+        </div>
       ) : null}
 
       {goal.metricType === 'milestones' ? (
@@ -307,18 +344,43 @@ export function GoalDetailPage() {
           </form>
           {goal.progressEntries.map((entry) => (
             <div key={entry.id} className="entry">
-              <div>
-                <strong>
-                  {formatNumber(entry.value)} {goal.unit}
-                </strong>
-                <div className="muted">
-                  {formatDate(entry.entryDate)}
-                  {entry.note ? ` · ${entry.note}` : ''}
-                </div>
-              </div>
-              <button type="button" className="btn btn-ghost" onClick={() => void removeEntry(entry)}>
-                Delete
-              </button>
+              {editingEntryId === entry.id ? (
+                <>
+                  <div className="two">
+                    <input aria-label="Entry date" type="date" value={editDate} onChange={(event) => setEditDate(event.target.value)} />
+                    <input aria-label="Entry value" inputMode="decimal" value={editValue} onChange={(event) => setEditValue(event.target.value)} />
+                    <input aria-label="Entry note" value={editNote} onChange={(event) => setEditNote(event.target.value)} />
+                  </div>
+                  <div className="actions">
+                    <button type="button" className="btn btn-primary" onClick={() => void saveEdit(entry)}>
+                      Save entry
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={() => setEditingEntryId(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <strong>
+                      {formatNumber(entry.value)} {goal.unit}
+                    </strong>
+                    <div className="muted">
+                      {formatDate(entry.entryDate)}
+                      {entry.note ? ` · ${entry.note}` : ''}
+                    </div>
+                  </div>
+                  <div className="actions">
+                    <button type="button" className="btn btn-ghost" onClick={() => beginEdit(entry)}>
+                      Edit
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={() => void removeEntry(entry)}>
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

@@ -5,6 +5,44 @@ import { createGoal, testApp, useTestDatabase } from './helpers/testEnv'
 describe('goals', () => {
   useTestDatabase()
 
+  it('keeps the original wording of a measurable goal through an update', async () => {
+    const created = await request(testApp())
+      .post('/api/goals')
+      .send({
+        title: 'Six packs',
+        metricType: 'numeric',
+        startValue: 64,
+        targetValue: 75,
+        unit: 'kg',
+        startLabel: 'starting from fatty and 64 kg',
+        targetLabel: '75kg weight and muscular body',
+      })
+    expect(created.status).toBe(201)
+    expect(created.body.startLabel).toBe('starting from fatty and 64 kg')
+    expect(created.body.targetLabel).toBe('75kg weight and muscular body')
+    expect(created.body.startValue).toBe(64)
+    expect(created.body.unit).toBe('kg')
+
+    const updated = await request(testApp())
+      .put(`/api/goals/${created.body.id}`)
+      .send({
+        title: 'Six packs',
+        metricType: 'numeric',
+        startValue: 64,
+        targetValue: 70,
+        unit: 'kg',
+        startLabel: 'starting from fatty and 64 kg',
+        targetLabel: '70 kg',
+      })
+    expect(updated.status).toBe(200)
+    expect(updated.body.targetValue).toBe(70)
+    expect(updated.body.targetLabel).toBe('70 kg')
+
+    const loaded = await request(testApp()).get(`/api/goals/${created.body.id}`)
+    expect(loaded.body.startLabel).toBe('starting from fatty and 64 kg')
+    expect(loaded.body.targetLabel).toBe('70 kg')
+  })
+
   it('creates a goal and reads it back', async () => {
     const created = await createGoal({ title: 'Read a novel', description: 'One chapter a night', priority: 'high' })
     const loaded = await request(testApp()).get(`/api/goals/${created.id}`)

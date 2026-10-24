@@ -25,6 +25,7 @@ function HabitForm({ onClose, onSaved }: HabitFormModalProps) {
   const [frequency, setFrequency] = useState<HabitFrequency>('daily')
   const [target, setTarget] = useState('3')
   const [goalId, setGoalId] = useState('')
+  const [remind, setRemind] = useState(true)
   const [goals, setGoals] = useState<GoalList['goals']>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -49,6 +50,7 @@ function HabitForm({ onClose, onSaved }: HabitFormModalProps) {
       frequency,
       targetPerPeriod: frequency === 'daily' ? 1 : Number(target),
       goalId: goalId ? Number(goalId) : null,
+      remind,
     })
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error))
@@ -93,6 +95,13 @@ function HabitForm({ onClose, onSaved }: HabitFormModalProps) {
             ))}
           </select>
         </FormField>
+        <div>
+          <label className="check">
+            <input id="habit-remind" type="checkbox" checked={remind} onChange={(event) => setRemind(event.target.checked)} />
+            Remind me
+          </label>
+          <p className="muted">Uses the daily check time in Settings.</p>
+        </div>
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             Cancel
